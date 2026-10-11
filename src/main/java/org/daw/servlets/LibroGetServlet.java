@@ -1,6 +1,8 @@
 package org.daw.servlets;
 
 import java.util.List;
+
+
 import java.io.IOException;
 
 
@@ -21,65 +23,59 @@ public class LibroGetServlet  extends HttpServlet {
 	@Override
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-        response.setContentType("text/html;charset=UTF-8");
-
-        response.setStatus(HttpServletResponse.SC_OK);
+        response.setContentType("application/xml;charset=UTF-8");
 
         String idParam = request.getParameter("id");
-
-        response.getWriter().println("""
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta charset="UTF-8">
-                <title>Libros</title>
-            </head>
-            <body>
-                <h1>Libros</h1>
-            """);
         
-        if (idParam != null) {
+        if (idParam == null) {
+			
+        	List<Libro> libros = ControladorLibro.listar();
+        	
+        	StringBuilder xml = new StringBuilder();
+        	
+        	xml.append("""
+        			<?xml version="1.0" encoding="UTF-8"?>
+        			<libros>
+        			""");
+        	
+        	for (Libro libro : libros) {
+				xml.append(XmlUtil.libro(libro));
+			}
+        	
+        	xml.append("""
+					</libros>
+					""");
+        	
+        	response.setStatus(HttpServletResponse.SC_OK);
+        	response.getWriter().print(xml);
+        	return;
+		}
+        
+        try {
 			int id = Integer.parseInt(idParam);
 			
 			Libro libro = ControladorLibro.buscar(id);
 			
-			if (libro == null) { // Si no lo encuentra
-				response.setStatus(HttpServletResponse.SC_NOT_FOUND);  // Mensaje 404
-				response.getWriter().println("<p>Libro no encontrado.</p>");
-				
-			} else {
-				response.getWriter().println("<h2>"+ libro.getNombre() +"</h2>");
-				response.getWriter().println("<p>Id: "+ libro.getId() +"</p>");
-				response.getWriter().println("<p>Año Edicion: "+ libro.getAñoEdicion() +"</p>");
+			if (libro == null) {
+				response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+
+				response.getWriter().print(XmlUtil.error("Libro no encontrado."));
+
+				return;
 			}
-		} else {
-			List<Libro> libros =  ControladorLibro.listar();
 			
-			response.getWriter().println("<ul>");
-
-            for (Libro libro : libros) {
-
-                response.getWriter().println(
-                    "<li>" +
-                    libro.getId() +
-                    " - " +
-                    libro.getNombre() +
-                    " año edicion " +
-                    libro.getAñoEdicion() +
-                    "</li>"
-                );
-            }
-            response.getWriter().println("</ul>");
-        }
-
-        response.getWriter().println("""
-            </body>
-            </html>
-            """);
+			String xml = """
+					<?xml version="1.0" encoding="UTF-8"?>
+        			%s
+					""".formatted(XmlUtil.libro(libro));
+			
+			response.setStatus(HttpServletResponse.SC_OK);
+        	response.getWriter().print(xml);
+        	
+		} catch (NumberFormatException e) {
+			response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+			response.getWriter().print(XmlUtil.error("El parámetro id debe ser un número entero."));
+		}
+        
 	}
-
-	
-	
-	
-
 }
