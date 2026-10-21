@@ -1,4 +1,4 @@
-package org.daw.servlets;
+package org.daw.servlets.ej01_CRUD_libros;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +20,7 @@ public class ControladorLibro {
 	 * @return
 	 */
 	public static synchronized List<Libro> listar() {
-		return new ArrayList<>(libros);
+		return libros;
 	}
 
 	/**
