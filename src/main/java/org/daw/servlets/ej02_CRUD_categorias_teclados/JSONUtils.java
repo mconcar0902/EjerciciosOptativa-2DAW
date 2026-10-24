@@ -1,47 +1,18 @@
 package org.daw.servlets.ej02_CRUD_categorias_teclados;
 
-import java.util.List;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JSONUtils {
-
-	/**
-	 * 
-	 * @param mensaje
-	 * @return
-	 */
-	public static String errorToJSON (String mensaje) {
-		return "{\"error\":\"" + mensaje + "\"}";
-	}
+	private static final ObjectMapper mapper = new ObjectMapper();
 	
 	/**
 	 * 
-	 * @param c
+	 * @param o
 	 * @return
+	 * @throws JsonProcessingException
 	 */
-	public static String categoriaToJSON(Categoria c) {
-		StringBuffer sb = new StringBuffer();
-		
-		sb.append("{\"id\":"+c.getId()+",");
-		sb.append("\"descripcion\":\""+c.getDescripcion()+"\"},");
-		
-		return sb.toString();
+	public static String toJSON(Object o) throws JsonProcessingException {	
+		return mapper.writeValueAsString(o);
 	}
-	
-	/**
-	 * 
-	 * @param categorias
-	 * @return
-	 */
-	public static String categoriaToJSONArray(List<Categoria> categorias) {
-    	StringBuffer sb = new StringBuffer();
-    	
-    	sb.append("[");
-		
-		for (Categoria categoria : categorias) {
-			sb.append(categoriaToJSON(categoria) + ",");
-		}
-		String strResponse = sb.toString();
-		strResponse = strResponse.substring(0,sb.toString().length()-1);
-		return strResponse +=  "]";
-    }
 }

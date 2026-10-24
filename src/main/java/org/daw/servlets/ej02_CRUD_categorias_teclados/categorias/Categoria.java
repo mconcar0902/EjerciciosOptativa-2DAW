@@ -1,4 +1,4 @@
-package org.daw.servlets.ej02_CRUD_categorias_teclados;
+package org.daw.servlets.ej02_CRUD_categorias_teclados.categorias;
 
 public class Categoria {
 	

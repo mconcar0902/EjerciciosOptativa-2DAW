@@ -1,4 +1,4 @@
-package org.daw.servlets.ej02_CRUD_categorias_teclados;
+package org.daw.servlets.ej02_CRUD_categorias_teclados.categorias;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +62,11 @@ public class ControladorCategoria {
 		return c;
 	}
 	
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 */
 	public static boolean deleteCategoria(int id) {
 		Categoria c = ControladorCategoria.getCategoria(id);
 		if (c != null) {
