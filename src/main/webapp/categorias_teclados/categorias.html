@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Categorías</title>
+<link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+<header><h1>Categorías</h1><a href="index.html">Volver al inicio</a></header>
+<main>
+  <div id="mensaje" role="status"></div>
+
+  <section>
+    <h2 id="tituloForm">Nuevo registro</h2>
+    <form id="formulario">
+      <input type="hidden" id="id">
+      <label>Descripción <input type="text" id="descripcion" required></label>
+      <div class="acciones">
+        <button type="submit" id="btnGuardar">Crear (POST)</button>
+        <button type="button" class="sec" id="btnCancelar" hidden>Cancelar edición</button>
+      </div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Listado</h2>
+    <div class="barra">
+      <label>Buscar por ID <input type="number" id="buscarId" min="1"></label>
+      <button type="button" id="btnBuscar">Buscar (GET)</button>
+      <button type="button" class="sec" id="btnTodos">Ver todos (GET)</button>
+    </div>
+    <div class="tabla-wrap"><table><thead id="cabecera"></thead><tbody id="cuerpo"></tbody></table></div>
+    <p class="vacio" id="vacio" hidden>No hay registros que mostrar.</p>
+  </section>
+</main>
+
+<script>
+// Context path del proyecto (p. ej. /proyectoMavenIntegradoEnEclipseTomcat), sin importar en qué carpeta esté el HTML
+const PRIMER = location.pathname.split("/")[1] || "";
+const CTX = PRIMER.indexOf(".") === -1 ? "/" + PRIMER : "";
+// Rutas de tus servlets (@WebServlet)
+const RUTA_GET = CTX + "/ej02_categorias";
+const RUTA_POST = CTX + "/ej02_categorias/crear";
+const RUTA_PUT = CTX + "/ej02_categorias/modificar";
+const RUTA_DELETE = CTX + "/ej02_categorias/eliminar";
+// Campos del formulario = parámetros que lee tu servlet
+const CAMPOS = ["descripcion"];
+
+const el = id => document.getElementById(id);
+
+// Tus servlets leen parámetros (request.getParameter), no JSON: van en la URL.
+function parametros(obj) {
+  return Object.keys(obj).map(k => encodeURIComponent(k) + "=" + encodeURIComponent(obj[k])).join("&");
+}
+
+// Única función que usa XMLHttpRequest
+function peticion(metodo, ruta, params, alTerminar) {
+  const xhr = new XMLHttpRequest();
+  const url = params && Object.keys(params).length ? ruta + "?" + parametros(params) : ruta;
+  xhr.open(metodo, url, true);
+  xhr.onload = function () {
+    let cuerpo = null;
+    if (xhr.responseText) { try { cuerpo = JSON.parse(xhr.responseText); } catch (e) { cuerpo = null; } }
+    if (xhr.status >= 200 && xhr.status < 300) alTerminar(null, cuerpo);
+    else alTerminar((cuerpo && cuerpo.mensaje) ? cuerpo.mensaje : "Error " + xhr.status + " " + xhr.statusText, cuerpo);
+  };
+  xhr.onerror = function () { alTerminar("No se pudo conectar con el servidor. ¿Está Tomcat arrancado?", null); };
+  xhr.send();
+}
+
+function aviso(texto, tipo) {
+  const m = el("mensaje"); m.textContent = texto; m.className = tipo;
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => { m.className = ""; }, 5000);
+}
+
+// ---- GET ----
+function cargarTodos() {
+  peticion("GET", RUTA_GET, null, (err, datos) => { if (err) return aviso(err, "error"); pintar(datos); });
+}
+function buscarPorId() {
+  const id = el("buscarId").value;
+  if (!id) return aviso("Escribe un ID para buscar.", "error");
+  peticion("GET", RUTA_GET, { id: id }, (err, datos) => { if (err) { pintar([]); return aviso(err, "error"); } pintar(datos); });
+}
+
+function pintar(datos) {
+  const filas = Array.isArray(datos) ? datos : (datos ? [datos] : []);
+  const cab = el("cabecera"), cuerpo = el("cuerpo");
+  cab.innerHTML = ""; cuerpo.innerHTML = "";
+  el("vacio").hidden = filas.length > 0;
+  if (!filas.length) return;
+  const columnas = Object.keys(filas[0]);
+  const trh = document.createElement("tr");
+  columnas.concat("Acciones").forEach(c => { const th = document.createElement("th"); th.textContent = c; trh.appendChild(th); });
+  cab.appendChild(trh);
+  filas.forEach(f => {
+    const tr = document.createElement("tr");
+    columnas.forEach(c => { const td = document.createElement("td"); td.textContent = f[c] ?? ""; tr.appendChild(td); });
+    const td = document.createElement("td"); td.className = "acciones";
+    const be = document.createElement("button"); be.className = "pequeno aviso"; be.textContent = "Editar";
+    be.onclick = () => editar(f);
+    const bd = document.createElement("button"); bd.className = "pequeno peligro"; bd.textContent = "Eliminar";
+    bd.onclick = () => eliminar(f);
+    td.append(be, bd); tr.appendChild(td); cuerpo.appendChild(tr);
+  });
+}
+
+// ---- POST / PUT ----
+function guardar(e) {
+  e.preventDefault();
+  const params = {};
+  CAMPOS.forEach(c => { params[c] = el(c).value.trim(); });
+  const id = el("id").value;
+  if (id) { // modificar (PUT)
+    params.id = id;
+    peticion("PUT", RUTA_PUT, params, (err) => {
+      if (err) return aviso(err, "error");
+      aviso("Registro modificado.", "ok"); limpiar(); cargarTodos();
+    });
+  } else { // crear (POST)
+    peticion("POST", RUTA_POST, params, (err) => {
+      if (err) return aviso(err, "error");
+      aviso("Registro creado.", "ok"); limpiar(); cargarTodos();
+    });
+  }
+}
+
+// ---- DELETE ----
+function eliminar(f) {
+  if (!confirm("¿Eliminar el registro con ID " + f.id + "?")) return;
+  peticion("DELETE", RUTA_DELETE, { id: f.id }, (err, datos) => {
+    if (err) return aviso(err, "error");
+    aviso((datos && datos.mensaje) || "Registro eliminado.", "ok"); limpiar(); cargarTodos();
+  });
+}
+
+// ---- Formulario ----
+function editar(f) {
+  el("id").value = f.id;
+  CAMPOS.forEach(c => { el(c).value = f[c] ?? ""; });
+  el("tituloForm").textContent = "Modificar registro " + f.id;
+  el("btnGuardar").textContent = "Guardar cambios (PUT)";
+  el("btnCancelar").hidden = false;
+  el(CAMPOS[0]).focus();
+}
+function limpiar() {
+  el("formulario").reset(); el("id").value = "";
+  el("tituloForm").textContent = "Nuevo registro";
+  el("btnGuardar").textContent = "Crear (POST)";
+  el("btnCancelar").hidden = true;
+}
+
+el("formulario").addEventListener("submit", guardar);
+el("btnCancelar").addEventListener("click", limpiar);
+el("btnBuscar").addEventListener("click", buscarPorId);
+el("btnTodos").addEventListener("click", cargarTodos);
+
+cargarTodos();
+</script>
+</body>
+</html>
