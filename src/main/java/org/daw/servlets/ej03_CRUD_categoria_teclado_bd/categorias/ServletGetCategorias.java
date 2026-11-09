@@ -113,7 +113,7 @@ public class ServletGetCategorias extends SuperServlet {
 	 */
 	private void obtenerCategoriaPorId(String strId, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
-		final Integer idCategoria = getIntParameterWithCheck(strId, request, response);
+		Integer idCategoria = getIntParameterWithCheck("id", request, response);
 		if (idCategoria == null) return;
 		
 
